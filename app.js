@@ -1,5 +1,4 @@
-require('dotenv').config(); // ✅ Always load env first
-
+require('dotenv').config(); // ✅ Always load env first  
 const express = require("express");
 const app = express();
 
@@ -17,12 +16,24 @@ const errorHandler = require("./middlewares/error_handler");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root route - Add this to handle the root path
+app.get('/', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: "API is running",
+    endpoints: {
+      auth: "/api/auth/*",
+      users: "/api/users/*",
+      api: "/api/*"
+    }
+  });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api', apiRoutes);
-
-
+ 
 app.use(notFound);
 app.use(errorHandler);
 
@@ -34,11 +45,11 @@ const start = async () => {
     if (!process.env.MONGO_URI) {
       throw new Error("❌ MONGO_URI is not defined in environment variables");
     }
-
+    
     console.log("🟡 Connecting to MongoDB...");
     await connectDB(process.env.MONGO_URI);
     console.log("✅ MongoDB connected");
-
+    
     app.listen(port, () =>
       console.log(`🚀 Server running on port ${port}...`)
     );
@@ -48,4 +59,10 @@ const start = async () => {
   }
 };
 
-start();
+// For Vercel deployment, we need to export the Express app
+module.exports = app;
+
+// Only start the server if not being imported (for Vercel)
+if (require.main === module) {
+  start();
+}
