@@ -6,124 +6,38 @@ const axios = require('axios');
 
 exports.getQuote = async (req, res) => {
   try {
+    const zenResponse = await axios.get('https://zenquotes.io/api/random', {
+      timeout: 5000
+    });
     
-    try {
-      const zenResponse = await axios.get('https://zenquotes.io/api/random', {
-        timeout: 5000
-      });
+    if (zenResponse.data && zenResponse.data[0]) {
+      const quoteData = zenResponse.data[0];
+      console.log('Successfully retrieved quote from ZenQuotes');
       
-      if (zenResponse.data && zenResponse.data[0]) {
-        const quoteData = zenResponse.data[0];
-        console.log('Successfully retrieved quote from ZenQuotes');
-        
-        // Generate random tags
-        const possibleTags = ['inspiration', 'motivation', 'wisdom', 'life'];
-        const randomTags = [possibleTags[Math.floor(Math.random() * possibleTags.length)]];
-        
-        return res.json({
-          success: true,
-          source: 'zenquotes.io',
-          data: {
-            quote: quoteData.q,
-            author: quoteData.a,
-            tags: randomTags
-          }
-        });
-      }
-      throw new Error('Invalid response from ZenQuotes');
-    } catch (zenError) {
-      console.log(`ZenQuotes API failed: ${zenError.message}`);
+      // Generate random tags
+      const possibleTags = ['inspiration', 'motivation', 'wisdom', 'life'];
+      const randomTags = [possibleTags[Math.floor(Math.random() * possibleTags.length)]];
       
-      // Option 2: Try Quotable.io API
-      try {
-        const quotableResponse = await axios.get('https://api.quotable.io/random', {
-          timeout: 5000
-        });
-        
-        console.log('Successfully retrieved quote from Quotable.io');
-        return res.json({
-          success: true,
-          source: 'quotable.io',
-          data: {
-            quote: quotableResponse.data.content,
-            author: quotableResponse.data.author,
-            tags: quotableResponse.data.tags || []
-          }
-        });
-      } catch (quotableError) {
-        console.log(`Quotable.io API failed: ${quotableError.message}`);
-        
-        // Option 3: Try GoQuotes API
-        try {
-          const goResponse = await axios.get('https://goquotes-api.herokuapp.com/api/v1/random?count=1', {
-            timeout: 5000
-          });
-          
-          if (goResponse.data && goResponse.data.quotes && goResponse.data.quotes[0]) {
-            const quote = goResponse.data.quotes[0];
-            console.log('Successfully retrieved quote from GoQuotes');
-            
-            return res.json({
-              success: true,
-              source: 'goquotes-api',
-              data: {
-                quote: quote.text,
-                author: quote.author,
-                tags: [quote.tag] || ['inspiration']
-              }
-            });
-          }
-          throw new Error('Invalid response from GoQuotes');
-        } catch (goError) {
-          console.log(`GoQuotes API failed: ${goError.message}`);
-          
-          // Option 4: Try Forismatic API
-          try {
-            const forismaticResponse = await axios.get('https://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en', {
-              timeout: 5000
-            });
-            
-            console.log('Successfully retrieved quote from Forismatic');
-            return res.json({
-              success: true,
-              source: 'forismatic',
-              data: {
-                quote: forismaticResponse.data.quoteText.trim(),
-                author: forismaticResponse.data.quoteAuthor || 'Unknown',
-                tags: ['wisdom']
-              }
-            });
-          } catch (forismaticError) {
-            console.log(`Forismatic API failed: ${forismaticError.message}`);
-            
-            // Final fallback - Local quotes
-            console.log('All APIs failed, using local quotes');
-            
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Quote service error:', error);
-    
-    // Ultimate fallback - if everything else fails
-    try {
-      const fallbackQuote = localQuotes.getRandomQuote();
       return res.json({
         success: true,
-        source: 'local (emergency fallback)',
-        data: fallbackQuote
-      });
-    } catch (fallbackError) {
-      return res.status(500).json({
-        success: false,
-        message: `Failed to retrieve quote: ${error.message}`
+        source: 'zenquotes.io',
+        data: {
+          quote: quoteData.q,
+          author: quoteData.a,
+          tags: randomTags
+        }
       });
     }
+    
+    throw new Error('Invalid response from ZenQuotes');
+  } catch (error) {
+    console.error('ZenQuotes API error:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Failed to retrieve quote: ${error.message}`
+    });
   }
 };
-
-
 // Weather route handler
 exports.getWeather = async (req, res) => {
   try {
