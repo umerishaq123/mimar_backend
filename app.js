@@ -1,14 +1,15 @@
-require('dotenv').config(); // ✅ Always load env first
+// index.js - This must be in the root directory for Vercel
+require('dotenv').config();
 const express = require("express");
 const app = express();
+const connectDB = require('./db/connect_db');
 
-// Routes
+// Import routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 
-// DB connection and middlewares
-const connectDB = require('./db/connect_db');
+// Import middlewares
 const notFound = require("./middlewares/not_found");
 const errorHandler = require("./middlewares/error_handler");
 
@@ -16,14 +17,14 @@ const errorHandler = require("./middlewares/error_handler");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Connect to the database right away for Vercel deployment
-// This helps initialize the connection early
+// Initialize DB connection early
 if (process.env.MONGO_URI) {
   connectDB(process.env.MONGO_URI)
     .then(() => console.log("MongoDB connection initialized"))
     .catch(err => console.error("MongoDB initialization error:", err));
 }
 
+// Root route - for health check
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -41,35 +42,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api', apiRoutes);
 
+// Error handling middlewares
 app.use(notFound);
 app.use(errorHandler);
 
+// For local development
 const port = process.env.PORT || 3000;
-
-// Start Server
-const start = async () => {
-  try {
-    if (!process.env.MONGO_URI) {
-      throw new Error("❌ MONGO_URI is not defined in environment variables");
-    }
-    
-    console.log("🟡 Connecting to MongoDB...");
-    await connectDB(process.env.MONGO_URI);
-    console.log("✅ MongoDB connected");
-    
-    app.listen(port, () =>
-      console.log(`🚀 Server running on port ${port}...`)
-    );
-  } catch (error) {
-    console.error("❌ Error starting server:", error.message);
-    process.exit(1);
-  }
-};
-
-// For Vercel deployment, we need to export the Express app
-module.exports = app;
-
-// Only start the server if not being imported (for Vercel)
 if (require.main === module) {
-  start();
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
 }
+
+// This is critical for Vercel
+module.exports = app;
