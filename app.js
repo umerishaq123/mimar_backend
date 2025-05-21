@@ -22,7 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api', apiRoutes);
 
-// Error handling middlewares
+
 app.use(notFound);
 app.use(errorHandler);
 
