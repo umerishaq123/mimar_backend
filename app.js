@@ -1,4 +1,4 @@
-require('dotenv').config(); // ✅ Always load env first  
+require('dotenv').config(); // ✅ Always load env first
 const express = require("express");
 const app = express();
 
@@ -16,10 +16,17 @@ const errorHandler = require("./middlewares/error_handler");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Connect to the database right away for Vercel deployment
+// This helps initialize the connection early
+if (process.env.MONGO_URI) {
+  connectDB(process.env.MONGO_URI)
+    .then(() => console.log("MongoDB connection initialized"))
+    .catch(err => console.error("MongoDB initialization error:", err));
+}
 
 app.get('/', (req, res) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: "API is running",
     endpoints: {
       auth: "/api/auth/*",
@@ -33,7 +40,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api', apiRoutes);
- 
+
 app.use(notFound);
 app.use(errorHandler);
 
