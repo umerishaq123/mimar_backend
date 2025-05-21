@@ -1,34 +1,44 @@
 const mongoose = require("mongoose");
 
-// Cache the database connection promise
-let dbConnectionPromise = null;
+let cachedConnection = null;
 
 const mongooseConnection = async (url) => {
-  // If the connection is already being established, return the promise
-  if (dbConnectionPromise) {
-    return dbConnectionPromise;
+  // Return cached connection if available
+  if (cachedConnection) {
+    return cachedConnection;
   }
 
-  // Set important mongoose options for serverless environments
+  // Set mongoose options for serverless environments
   const options = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    bufferCommands: false, // Disable mongoose buffering
-    serverSelectionTimeoutMS: 10000, // Give enough time to select a server
-    socketTimeoutMS: 45000, // Longer timeout for operations
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 30000,
   };
 
-  // Store the connection promise
-  dbConnectionPromise = mongoose.connect(url, options);
-  
-  // Handle connection errors
-  dbConnectionPromise.catch(err => {
-    console.error('MongoDB connection error:', err);
-    // Reset the promise so we can try again
-    dbConnectionPromise = null;
-  });
-  
-  return dbConnectionPromise;
+  try {
+    // Create new connection
+    await mongoose.connect(url, options);
+    cachedConnection = mongoose.connection;
+    
+    // Event listeners for connection state
+    mongoose.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+      cachedConnection = null;
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.log('MongoDB disconnected');
+      cachedConnection = null;
+    });
+    
+    return mongoose.connection;
+  } catch (err) {
+    console.error('MongoDB initial connection error:', err);
+    cachedConnection = null;
+    throw err;
+  }
 };
 
 module.exports = mongooseConnection;

@@ -3,12 +3,10 @@ const express = require("express");
 const app = express();
 const connectDB = require('./db/connect_db');
 
-// Import routes
+// Import routes and middlewares
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const apiRoutes = require('./routes/apiRoutes');
-
-// Import middlewares
 const notFound = require("./middlewares/not_found");
 const errorHandler = require("./middlewares/error_handler");
 
@@ -16,41 +14,40 @@ const errorHandler = require("./middlewares/error_handler");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Database connection
-let dbPromise = null;
+// Database connection state
+let dbConnected = false;
+
+// Connect to DB and set up listeners
 if (process.env.MONGO_URI) {
-  dbPromise = connectDB(process.env.MONGO_URI);
-  dbPromise
-    .then(() => console.log("✅ MongoDB connected"))
-    .catch(err => console.error("❌ MongoDB connection error:", err));
+  connectDB(process.env.MONGO_URI)
+    .then(() => {
+      dbConnected = true;
+      console.log("✅ MongoDB connected");
+    })
+    .catch(err => {
+      console.error("❌ MongoDB connection error:", err);
+      dbConnected = false;
+    });
 }
 
-// Middleware to ensure DB is connected before handling routes
-const ensureDbConnected = async (req, res, next) => {
-  if (!dbPromise) {
-    return res.status(500).json({
+// Middleware to check DB connection
+const checkDbConnection = (req, res, next) => {
+  if (!dbConnected) {
+    return res.status(503).json({
       success: false,
-      message: "Database connection not initialized"
+      message: "Service unavailable - Database not connected",
+      retry: true
     });
   }
-  
-  try {
-    // Wait for DB connection before proceeding
-    await dbPromise;
-    next();
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to connect to database"
-    });
-  }
+  next();
 };
 
-// Root route - for health check (no DB required)
+// Root route - no DB check
 app.get('/', (req, res) => {
   res.json({
     success: true,
     message: "API is running",
+    database: dbConnected ? "connected" : "disconnected",
     endpoints: {
       auth: "/api/auth/*",
       users: "/api/users/*",
@@ -59,24 +56,16 @@ app.get('/', (req, res) => {
   });
 });
 
-// Simple test route to verify DB connection
-app.get('/api/dbtest', ensureDbConnected, (req, res) => {
-  res.json({
-    success: true,
-    message: "Database connection successful"
-  });
-});
-
-// Routes - ensure DB is connected before handling any DB-dependent routes
-app.use('/api/auth', ensureDbConnected, authRoutes);
-app.use('/api/users', ensureDbConnected, userRoutes);
-app.use('/api', ensureDbConnected, apiRoutes);
+// Routes with DB connection check
+app.use('/api/auth', checkDbConnection, authRoutes);
+app.use('/api/users', checkDbConnection, userRoutes);
+app.use('/api', checkDbConnection, apiRoutes);
 
 // Error handling middlewares
 app.use(notFound);
 app.use(errorHandler);
 
-// For local development
+// Server setup
 const port = process.env.PORT || 3000;
 if (require.main === module) {
   app.listen(port, () => {
@@ -84,5 +73,4 @@ if (require.main === module) {
   });
 }
 
-// This is critical for Vercel
 module.exports = app;
