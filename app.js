@@ -16,7 +16,7 @@ const errorHandler = require("./middlewares/error_handler");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Root route - Add this to handle the root path
+
 app.get('/', (req, res) => {
   res.json({ 
     success: true, 
