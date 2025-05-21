@@ -162,6 +162,6 @@ exports.getWeather = async (req, res) => {
   }
 };
 
-
+// Quote route handler
 
 
