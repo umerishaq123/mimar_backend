@@ -33,6 +33,11 @@ const UserSchema = new mongoose.Schema({
   }
 });
 
+
+
+UserSchema.set('bufferCommands', false);
+UserSchema.set('bufferMaxEntries', 0);
+
 // Pre-save hook to hash password
 UserSchema.pre('save', async function() {
   if (!this.isModified('password')) return;
