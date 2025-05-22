@@ -6,7 +6,7 @@ const connectDB = async (uri) => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 5000, // Timeout after 5s
-      socketTimeoutMS: 45000 // Close sockets after 45s inactivity
+      socketTimeoutMS: 45000 
     });
     return conn;
   } catch (error) {

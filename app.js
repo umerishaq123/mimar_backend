@@ -7,7 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const apiRoutes = require('./routes/apiRoutes');
 
-// DB connection and middlewares
+
 const connectDB = require('./db/connect_db');
 const notFound = require("./middlewares/not_found");
 const errorHandler = require("./middlewares/error_handler");
